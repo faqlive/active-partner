@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="10.0" xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.MainController">
+    <padding>
+        <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
+    </padding>
+
+    <fx:include fx:id="profileBar" source="../components/profile-bar.fxml"/>
+    <fx:include fx:id="pointsTable" source="../components/points-table.fxml"/>
+
+    <Separator/>
+    <Label fx:id="pointSectionLabel" text="%section.pointConfiguration" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+    <fx:include fx:id="pointEditor" source="../components/point-editor.fxml"/>
+
+    <Separator/>
+    <Label fx:id="globalSectionLabel" text="%section.globalRunConfiguration" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+    <fx:include fx:id="runSettings" source="../components/run-settings.fxml"/>
+
+    <Separator/>
+    <fx:include fx:id="controlBar" source="../components/control-bar.fxml"/>
+    <fx:include fx:id="statusLog" source="../components/status-log.fxml"/>
+</VBox>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.MainLayoutController">
+    <top>
+        <HBox spacing="8.0" style="-fx-background-color: #e9eef5; -fx-border-color: #c6d1df; -fx-border-width: 0 0 1 0;">
+            <padding>
+                <Insets top="8.0" right="10.0" bottom="8.0" left="10.0"/>
+            </padding>
+            <Label fx:id="titleLabel" text="%app.title" style="-fx-font-weight: bold;"/>
+            <Button fx:id="automationButton" text="%nav.automation" onAction="#onOpenAutomation"/>
+            <Button fx:id="settingsButton" text="%nav.settings" onAction="#onOpenSettings"/>
+        </HBox>
+    </top>
+    <center>
+        <AnchorPane fx:id="viewContainer"/>
+    </center>
+</BorderPane>

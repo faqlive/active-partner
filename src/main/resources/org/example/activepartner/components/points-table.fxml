@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<TableView fx:id="pointsTable" prefHeight="100.0" VBox.vgrow="ALWAYS" xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.components.PointsTableController">
+    <columns>
+        <TableColumn fx:id="nameColumn" text="%table.name" prefWidth="130.0"/>
+        <TableColumn fx:id="xColumn" text="X" prefWidth="70.0"/>
+        <TableColumn fx:id="yColumn" text="Y" prefWidth="70.0"/>
+        <TableColumn fx:id="actionColumn" text="%table.action" prefWidth="120.0"/>
+        <TableColumn fx:id="enabledColumn" text="%table.enabled" prefWidth="90.0"/>
+        <TableColumn fx:id="clickColumn" text="%table.clickStatus" prefWidth="110.0"/>
+        <TableColumn fx:id="delayColumn" text="%table.delayMs" prefWidth="110.0"/>
+    </columns>
+</TableView>

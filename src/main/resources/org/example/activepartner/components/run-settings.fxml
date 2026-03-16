@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+
+<GridPane hgap="8.0" vgap="8.0" xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.components.RunSettingsController" style="-fx-background-color: #f7f7f7; -fx-border-color: #d8d8d8; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 10;">
+    <Label fx:id="intervalLabel" text="%run.intervalMs" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+    <TextField fx:id="intervalField" prefWidth="110.0" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+    <CheckBox fx:id="randomOrderCheck" text="%run.randomOrder" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+    <CheckBox fx:id="loopCheck" text="%run.loop" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+    <CheckBox fx:id="clickEnabledCheck" text="%run.enableClicks" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+
+    <Label fx:id="jitterLabel" text="%run.jitterPx" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+    <TextField fx:id="jitterField" prefWidth="110.0" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+    <Label fx:id="startDelayLabel" text="%run.startDelaySec" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+    <TextField fx:id="startDelayField" prefWidth="110.0" GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+</GridPane>

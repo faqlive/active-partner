@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="8.0" xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.components.StatusLogController">
+    <HBox spacing="10.0">
+        <Label fx:id="messageLabel" text="%status.ready"/>
+        <Label fx:id="mousePositionLabel" text="%status.mouseTemplate"/>
+        <Label fx:id="autoResumeLabel" text="%status.autoResumeTemplate"/>
+        <Label fx:id="shortcutsLabel" text="%status.shortcuts"/>
+    </HBox>
+    <TextArea fx:id="logArea" editable="false" wrapText="true" prefRowCount="8" VBox.vgrow="ALWAYS"/>
+</VBox>

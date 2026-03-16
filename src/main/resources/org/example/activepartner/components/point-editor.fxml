@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+
+<GridPane hgap="8.0" vgap="8.0" xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.activepartner.ui.components.PointEditorController" style="-fx-background-color: #f8fbff; -fx-border-color: #d7e2ef; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 10;">
+    <Label fx:id="pointNameLabel" text="%point.name" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+    <TextField fx:id="pointNameField" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+    <Label fx:id="xLabel" text="X" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+    <TextField fx:id="xField" prefWidth="80.0" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+    <Label fx:id="yLabel" text="Y" GridPane.columnIndex="4" GridPane.rowIndex="0"/>
+    <TextField fx:id="yField" prefWidth="80.0" GridPane.columnIndex="5" GridPane.rowIndex="0"/>
+
+    <Label fx:id="actionLabel" text="%point.action" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+    <ChoiceBox fx:id="actionTypeChoice" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+    <CheckBox fx:id="pointEnabledCheck" text="%point.enabled" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
+    <Label fx:id="delayLabel" text="%point.delayMs" GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+    <TextField fx:id="pointDelayField" prefWidth="100.0" GridPane.columnIndex="4" GridPane.rowIndex="1"/>
+    <Button fx:id="addPointButton" text="%point.add" GridPane.columnIndex="5" GridPane.rowIndex="1"/>
+    <Button fx:id="updatePointButton" text="%point.updateSelected" GridPane.columnIndex="6" GridPane.rowIndex="1"/>
+    <Button fx:id="removePointButton" text="%point.removeSelected" GridPane.columnIndex="7" GridPane.rowIndex="1"/>
+</GridPane>
