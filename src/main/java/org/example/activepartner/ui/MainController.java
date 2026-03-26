@@ -98,6 +98,7 @@ public class MainController {
     private TrayIcon trayIcon;
     private boolean activeRunClickEnabled;
     private boolean minimizeToTrayOnStartEnabled;
+    private boolean globalHookAvailable = false;
     private double lastWindowX = -1;
     private double lastWindowY = -1;
     private double lastWindowWidth = -1;
@@ -127,6 +128,7 @@ public class MainController {
         configureMouseTracker();
         loadProfiles();
         loadLastProfile();
+        registerGlobalKeyboardHook();
     }
 
     public void bindScene(Scene scene) {
@@ -135,22 +137,28 @@ public class MainController {
         }
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            // DELETE siempre local
             if (event.getCode() == KeyCode.DELETE && pointsTableController.getPointsTable().getSelectionModel().getSelectedItem() != null) {
                 onRemovePoint();
                 event.consume();
                 return;
             }
-
-            if (event.getCode() == KeyCode.F9 && AppServices.appState().getRunState() == RunState.RUNNING) {
-                onStop();
-                event.consume();
-                return;
+            // Si existe hook global activo, dejamos que el handler global se encargue de F8/F9 y notifyManualInteraction
+            if (!isGlobalHookActive()) {
+                if (event.getCode() == KeyCode.F8 && AppServices.appState().getRunState() == RunState.STOPPED) {
+                    addPointFromCurrentMousePosition();
+                    event.consume();
+                    return;
+                }
+                if (event.getCode() == KeyCode.F9 && AppServices.appState().getRunState() == RunState.RUNNING) {
+                    onStop();
+                    event.consume();
+                    return;
+                }
+                // notifyManualInteraction solo cuando NO hay hook global
+                automationService.notifyManualInteraction();
             }
-
-            automationService.notifyManualInteraction();
         });
-
-        registerGlobalKeyboardHook();
     }
 
     public void bindStage(Stage stage) {
@@ -569,58 +577,46 @@ public class MainController {
         pointsTableController.getPointsTable().refresh();
     }
 
+    private boolean isGlobalHookActive() {
+        return globalKeyListener != null && GlobalScreen.isNativeHookRegistered() && globalHookAvailable;
+    }
+
     private void registerGlobalKeyboardHook() {
         if (globalKeyListener != null) {
             return;
         }
-
         Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
         logger.setLevel(Level.WARNING);
         logger.setUseParentHandlers(false);
-
         try {
             if (!GlobalScreen.isNativeHookRegistered()) {
                 GlobalScreen.registerNativeHook();
             }
-
             globalKeyListener = new NativeKeyListener() {
                 @Override
-                public void nativeKeyTyped(NativeKeyEvent nativeEvent) {
-                }
-
+                public void nativeKeyTyped(NativeKeyEvent nativeEvent) {}
                 @Override
                 public void nativeKeyPressed(NativeKeyEvent nativeEvent) {
-                    if (nativeEvent.getKeyCode() == GLOBAL_ADD_POINT_KEY) {
-                        Platform.runLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                addPointFromCurrentMousePosition();
-                            }
-                        });
+                    if (nativeEvent.getKeyCode() == GLOBAL_ADD_POINT_KEY && AppServices.appState().getRunState() == RunState.STOPPED) {
+                        Platform.runLater(() -> addPointFromCurrentMousePosition());
                         return;
                     }
-
                     if (nativeEvent.getKeyCode() == GLOBAL_STOP_KEY && AppServices.appState().getRunState() == RunState.RUNNING) {
-                        Platform.runLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                onStop();
-                                restoreFromTray();
-                            }
+                        Platform.runLater(() -> {
+                            onStop();
+                            restoreFromTray();
                         });
                         return;
                     }
-
                     automationService.notifyManualInteraction();
                 }
-
                 @Override
-                public void nativeKeyReleased(NativeKeyEvent nativeEvent) {
-                }
+                public void nativeKeyReleased(NativeKeyEvent nativeEvent) {}
             };
-
             GlobalScreen.addNativeKeyListener(globalKeyListener);
+            globalHookAvailable = true;
         } catch (NativeHookException exception) {
+            globalHookAvailable = false;
             statusLogController.getMessageLabel().setText(t("msg.globalKeyboardHookNotAvailable", exception.getMessage()));
         }
     }
@@ -630,12 +626,13 @@ public class MainController {
             GlobalScreen.removeNativeKeyListener(globalKeyListener);
             globalKeyListener = null;
         }
-
         try {
             if (GlobalScreen.isNativeHookRegistered()) {
                 GlobalScreen.unregisterNativeHook();
             }
+            globalHookAvailable = false;
         } catch (NativeHookException ignored) {
+            globalHookAvailable = false;
         }
     }
 
