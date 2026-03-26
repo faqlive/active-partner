@@ -141,7 +141,7 @@ public class MainController {
                 return;
             }
 
-            if (event.getCode() == KeyCode.F9) {
+            if (event.getCode() == KeyCode.F9 && AppServices.appState().getRunState() == RunState.RUNNING) {
                 onStop();
                 event.consume();
                 return;
@@ -600,7 +600,7 @@ public class MainController {
                         return;
                     }
 
-                    if (nativeEvent.getKeyCode() == GLOBAL_STOP_KEY) {
+                    if (nativeEvent.getKeyCode() == GLOBAL_STOP_KEY && AppServices.appState().getRunState() == RunState.RUNNING) {
                         Platform.runLater(new Runnable() {
                             @Override
                             public void run() {
