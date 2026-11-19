@@ -2,7 +2,8 @@ package org.example.activepartner.ui.navigation;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import org.example.activepartner.ui.AppServices;
+import javafx.util.Callback;
+import org.example.activepartner.i18n.I18nService;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -11,7 +12,12 @@ import java.util.Map;
 public class NavigationService {
     private final Map<AppView, LoadedView> cache;
 
-    public NavigationService() {
+    private final I18nService i18n;
+    private final Callback<Class<?>, Object> controllerFactory;
+
+    public NavigationService(I18nService i18n, Callback<Class<?>, Object> controllerFactory) {
+        this.i18n = i18n;
+        this.controllerFactory = controllerFactory;
         this.cache = new EnumMap<AppView, LoadedView>(AppView.class);
     }
 
@@ -24,8 +30,9 @@ public class NavigationService {
         try {
             FXMLLoader loader = new FXMLLoader(
                     NavigationService.class.getResource(view.getFxmlPath()),
-                    AppServices.i18n().getBundle()
+                    i18n.getBundle()
             );
+            loader.setControllerFactory(controllerFactory);
             Parent root = loader.load();
             LoadedView loadedView = new LoadedView(root, loader.getController());
             cache.put(view, loadedView);

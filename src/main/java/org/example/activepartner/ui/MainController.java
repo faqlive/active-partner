@@ -1,9 +1,6 @@
 package org.example.activepartner.ui;
 
-import com.github.kwhat.jnativehook.GlobalScreen;
 import com.github.kwhat.jnativehook.NativeHookException;
-import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
-import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -34,7 +31,6 @@ import org.example.activepartner.domain.RunConfig;
 import org.example.activepartner.domain.RunState;
 import org.example.activepartner.i18n.I18nService;
 import org.example.activepartner.logging.AppLogService;
-import org.example.activepartner.persistence.JsonProfileRepository;
 import org.example.activepartner.persistence.ProfileRepository;
 import org.example.activepartner.ui.components.ControlBarController;
 import org.example.activepartner.ui.components.PointEditorController;
@@ -42,28 +38,16 @@ import org.example.activepartner.ui.components.PointsTableController;
 import org.example.activepartner.ui.components.ProfileBarController;
 import org.example.activepartner.ui.components.RunSettingsController;
 import org.example.activepartner.ui.components.StatusLogController;
+import org.example.activepartner.ui.state.AppState;
 
-import java.awt.Color;
-import java.awt.Image;
-import java.awt.MenuItem;
 import java.awt.MouseInfo;
 import java.awt.PointerInfo;
-import java.awt.PopupMenu;
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
-import java.awt.image.BufferedImage;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class MainController {
-    private static final int GLOBAL_ADD_POINT_KEY = NativeKeyEvent.VC_F8;
-    private static final int GLOBAL_STOP_KEY = NativeKeyEvent.VC_F9;
     private static final double MIN_WINDOW_WIDTH = 500;
     private static final double MIN_WINDOW_HEIGHT = 400;
 
@@ -93,24 +77,31 @@ public class MainController {
     private final DateTimeFormatter logTimeFormatter;
 
     private Timeline mouseTrackerTimeline;
-    private NativeKeyListener globalKeyListener;
+    private final GlobalKeyboardHook keyboardHook = new GlobalKeyboardHook();
+    private final DesktopTray tray;
+    private final AppState appState;
     private Stage stage;
-    private TrayIcon trayIcon;
     private boolean activeRunClickEnabled;
     private boolean minimizeToTrayOnStartEnabled;
-    private boolean globalHookAvailable = false;
     private double lastWindowX = -1;
     private double lastWindowY = -1;
     private double lastWindowWidth = -1;
     private double lastWindowHeight = -1;
 
-    public MainController() {
+    public MainController(ProfileRepository profileRepository, AutomationService automationService,
+                          AppSettingsService settingsService, AppLogService appLogService,
+                          I18nService i18nService, AppState appState) {
         this.points = FXCollections.observableArrayList();
-        this.profileRepository = new JsonProfileRepository();
-        this.automationService = new AutomationService();
-        this.settingsService = AppServices.settingsService();
-        this.appLogService = AppServices.logService();
-        this.i18nService = AppServices.i18n();
+        this.profileRepository = profileRepository;
+        this.automationService = automationService;
+        this.settingsService = settingsService;
+        this.appLogService = appLogService;
+        this.i18nService = i18nService;
+        this.appState = appState;
+        this.tray = new DesktopTray(i18nService, this::restoreFromTray, () -> {
+            onStop();
+            restoreFromTray();
+        }, Platform::exit);
         this.logTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         this.activeRunClickEnabled = false;
         this.minimizeToTrayOnStartEnabled = true;
@@ -144,13 +135,13 @@ public class MainController {
                 return;
             }
             // Si existe hook global activo, dejamos que el handler global se encargue de F8/F9 y notifyManualInteraction
-            if (!isGlobalHookActive()) {
-                if (event.getCode() == KeyCode.F8 && AppServices.appState().getRunState() == RunState.STOPPED) {
+            if (!keyboardHook.isActive()) {
+                if (event.getCode() == KeyCode.F8 && appState.getRunState() == RunState.STOPPED) {
                     addPointFromCurrentMousePosition();
                     event.consume();
                     return;
                 }
-                if (event.getCode() == KeyCode.F9 && AppServices.appState().getRunState() == RunState.RUNNING) {
+                if (event.getCode() == KeyCode.F9 && appState.getRunState() == RunState.RUNNING) {
                     onStop();
                     event.consume();
                     return;
@@ -212,7 +203,7 @@ public class MainController {
         controlBarController.getCountTextLabel().setText(t("control.count"));
 
         statusLogController.getShortcutsLabel().setText(t("status.shortcuts"));
-        statusLogController.getMessageLabel().setText(AppServices.appState().getLastMessage());
+        statusLogController.getMessageLabel().setText(appState.getLastMessage());
         applyAppSettings();
         pointsTableController.getPointsTable().refresh();
         refreshTrayLocalization();
@@ -223,8 +214,13 @@ public class MainController {
         if (mouseTrackerTimeline != null) {
             mouseTrackerTimeline.stop();
         }
-        unregisterGlobalKeyboardHook();
-        removeTrayIcon();
+        try {
+            keyboardHook.close();
+        } catch (NativeHookException exception) {
+            appendLog(t("msg.globalKeyboardHookNotAvailable", exception.getMessage()));
+        } finally {
+            tray.close();
+        }
     }
 
     private void wireActions() {
@@ -323,7 +319,7 @@ public class MainController {
         automationService.stop();
         statusLogController.getMessageLabel().setText(t("msg.automationStopped"));
         appendLog(t("log.automationStopped"));
-        removeTrayIcon();
+        tray.close();
     }
 
     private void onSaveProfile() {
@@ -333,7 +329,7 @@ public class MainController {
             profileRepository.saveLastUsed(profile.getName());
             loadProfiles();
             profileBarController.getProfileComboBox().setValue(profile.getName());
-            AppServices.appState().setActiveProfile(profile.getName());
+            appState.setActiveProfile(profile.getName());
             statusLogController.getMessageLabel().setText(t("msg.profileSaved"));
             appendLog(t("log.profileSaved", profile.getName()));
         } catch (Exception exception) {
@@ -351,7 +347,7 @@ public class MainController {
             AutomationProfile profile = profileRepository.load(selected);
             applyProfile(profile);
             profileRepository.saveLastUsed(profile.getName());
-            AppServices.appState().setActiveProfile(profile.getName());
+            appState.setActiveProfile(profile.getName());
             statusLogController.getMessageLabel().setText(t("msg.profileLoaded"));
             appendLog(t("log.profileLoaded", profile.getName()));
         } catch (Exception exception) {
@@ -417,7 +413,7 @@ public class MainController {
                     @Override
                     public void run() {
                         controlBarController.getStateLabel().setText(state.name());
-                        AppServices.appState().setRunState(state);
+                        appState.setRunState(state);
                         appendLog(t("log.stateChanged", state.name()));
                     }
                 });
@@ -443,7 +439,7 @@ public class MainController {
                     public void run() {
                         String details = exception == null ? "" : (" - " + exception.getMessage());
                         statusLogController.getMessageLabel().setText(message + details);
-                        AppServices.appState().setLastMessage(message + details);
+                        appState.setLastMessage(message + details);
                         appendLog(t("log.error", message + details));
                     }
                 });
@@ -455,7 +451,7 @@ public class MainController {
                     @Override
                     public void run() {
                         statusLogController.getMessageLabel().setText(message);
-                        AppServices.appState().setLastMessage(message);
+                        appState.setLastMessage(message);
                         appendLog(message);
                     }
                 });
@@ -508,8 +504,8 @@ public class MainController {
         controlBarController.getStateLabel().setText(RunState.STOPPED.name());
         controlBarController.getCounterLabel().setText("0");
         statusLogController.getMessageLabel().setText(t("status.ready"));
-        AppServices.appState().setRunState(RunState.STOPPED);
-        AppServices.appState().setLastMessage(t("status.ready"));
+        appState.setRunState(RunState.STOPPED);
+        appState.setLastMessage(t("status.ready"));
         statusLogController.getShortcutsLabel().setText(t("status.shortcuts"));
         statusLogController.getAutoResumeLabel().setText(t("status.autoResume", 60));
         statusLogController.getLogArea().clear();
@@ -562,7 +558,7 @@ public class MainController {
 
     private void applyProfile(AutomationProfile profile) {
         profileBarController.getProfileComboBox().setValue(profile.getName());
-        AppServices.appState().setActiveProfile(profile.getName());
+        appState.setActiveProfile(profile.getName());
         points.setAll(profile.getPoints());
 
         RunConfig config = profile.getConfig();
@@ -577,62 +573,20 @@ public class MainController {
         pointsTableController.getPointsTable().refresh();
     }
 
-    private boolean isGlobalHookActive() {
-        return globalKeyListener != null && GlobalScreen.isNativeHookRegistered() && globalHookAvailable;
-    }
-
     private void registerGlobalKeyboardHook() {
-        if (globalKeyListener != null) {
-            return;
-        }
-        Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
-        logger.setLevel(Level.WARNING);
-        logger.setUseParentHandlers(false);
         try {
-            if (!GlobalScreen.isNativeHookRegistered()) {
-                GlobalScreen.registerNativeHook();
-            }
-            globalKeyListener = new NativeKeyListener() {
-                @Override
-                public void nativeKeyTyped(NativeKeyEvent nativeEvent) {}
-                @Override
-                public void nativeKeyPressed(NativeKeyEvent nativeEvent) {
-                    if (nativeEvent.getKeyCode() == GLOBAL_ADD_POINT_KEY && AppServices.appState().getRunState() == RunState.STOPPED) {
-                        Platform.runLater(() -> addPointFromCurrentMousePosition());
-                        return;
-                    }
-                    if (nativeEvent.getKeyCode() == GLOBAL_STOP_KEY && AppServices.appState().getRunState() == RunState.RUNNING) {
-                        Platform.runLater(() -> {
-                            onStop();
-                            restoreFromTray();
-                        });
-                        return;
-                    }
-                    automationService.notifyManualInteraction();
-                }
-                @Override
-                public void nativeKeyReleased(NativeKeyEvent nativeEvent) {}
-            };
-            GlobalScreen.addNativeKeyListener(globalKeyListener);
-            globalHookAvailable = true;
+            keyboardHook.start(
+                    () -> appState.getRunState() == RunState.STOPPED,
+                    () -> appState.getRunState() == RunState.RUNNING,
+                    () -> Platform.runLater(this::addPointFromCurrentMousePosition),
+                    () -> Platform.runLater(() -> {
+                        onStop();
+                        restoreFromTray();
+                    }),
+                    automationService::notifyManualInteraction
+            );
         } catch (NativeHookException exception) {
-            globalHookAvailable = false;
             statusLogController.getMessageLabel().setText(t("msg.globalKeyboardHookNotAvailable", exception.getMessage()));
-        }
-    }
-
-    private void unregisterGlobalKeyboardHook() {
-        if (globalKeyListener != null) {
-            GlobalScreen.removeNativeKeyListener(globalKeyListener);
-            globalKeyListener = null;
-        }
-        try {
-            if (GlobalScreen.isNativeHookRegistered()) {
-                GlobalScreen.unregisterNativeHook();
-            }
-            globalHookAvailable = false;
-        } catch (NativeHookException ignored) {
-            globalHookAvailable = false;
         }
     }
 
@@ -687,15 +641,15 @@ public class MainController {
     }
 
     private void minimizeToTrayOnStart() {
-        if (stage == null || !SystemTray.isSupported()) {
+        if (stage == null || !DesktopTray.isSupported()) {
             return;
         }
 
         try {
-            ensureTrayIcon();
+            tray.open();
             captureStageBounds(true);
 
-            trayIcon.displayMessage(t("app.title"), t("tray.running"), TrayIcon.MessageType.INFO);
+            tray.showRunningMessage();
             stage.setIconified(true);
             stage.hide();
         } catch (Exception exception) {
@@ -704,73 +658,19 @@ public class MainController {
     }
 
     private void refreshTrayLocalization() {
-        if (trayIcon == null || !SystemTray.isSupported()) {
+        if (!tray.isOpen()) {
             return;
         }
         boolean stageHidden = stage != null && !stage.isShowing();
         try {
-            removeTrayIcon();
-            ensureTrayIcon();
+            tray.close();
+            tray.open();
             if (!stageHidden && stage != null) {
                 stage.show();
             }
         } catch (Exception exception) {
             appendLog(t("log.trayUnavailable", exception.getMessage()));
         }
-    }
-
-    private void ensureTrayIcon() throws Exception {
-        if (trayIcon != null) {
-            return;
-        }
-        Image image = buildTrayImage();
-        PopupMenu menu = new PopupMenu();
-
-        MenuItem showItem = new MenuItem(t("tray.show"));
-        showItem.addActionListener(event -> Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                restoreFromTray();
-            }
-        }));
-
-        MenuItem stopItem = new MenuItem(t("tray.stop"));
-        stopItem.addActionListener(event -> Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                onStop();
-                restoreFromTray();
-            }
-        }));
-
-        MenuItem exitItem = new MenuItem(t("tray.exit"));
-        exitItem.addActionListener(event -> Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                Platform.exit();
-            }
-        }));
-
-        menu.add(showItem);
-        menu.add(stopItem);
-        menu.add(exitItem);
-
-        trayIcon = new TrayIcon(image, t("app.title"), menu);
-        trayIcon.setImageAutoSize(true);
-        trayIcon.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent event) {
-                if (event.getButton() == MouseEvent.BUTTON1 && event.getClickCount() == 1) {
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            restoreFromTray();
-                        }
-                    });
-                }
-            }
-        });
-        SystemTray.getSystemTray().add(trayIcon);
     }
 
     private void restoreFromTray() {
@@ -850,28 +750,6 @@ public class MainController {
                 stage.setY(settings.getWindowY());
             }
         }
-    }
-
-    private void removeTrayIcon() {
-        if (trayIcon != null && SystemTray.isSupported()) {
-            SystemTray.getSystemTray().remove(trayIcon);
-            trayIcon = null;
-        }
-    }
-
-    private Image buildTrayImage() {
-        Image resourceIcon = IconResources.loadAwtIcon();
-        if (resourceIcon != null) {
-            return resourceIcon;
-        }
-        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        java.awt.Graphics2D graphics = image.createGraphics();
-        graphics.setColor(new Color(31, 79, 177));
-        graphics.fillRoundRect(0, 0, 16, 16, 4, 4);
-        graphics.setColor(Color.WHITE);
-        graphics.drawString("A", 5, 12);
-        graphics.dispose();
-        return image;
     }
 
     private String resolveClickStatus(ActionPoint point) {

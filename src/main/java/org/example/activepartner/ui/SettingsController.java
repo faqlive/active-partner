@@ -10,6 +10,7 @@ import org.example.activepartner.config.AppSettings;
 import org.example.activepartner.config.AppSettingsService;
 import org.example.activepartner.i18n.AppLanguage;
 import org.example.activepartner.i18n.I18nService;
+import org.example.activepartner.ui.state.AppState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,11 +43,13 @@ public class SettingsController {
 
     private final AppSettingsService settingsService;
     private final I18nService i18nService;
+    private final AppState appState;
     private Runnable languageChangedHandler;
 
-    public SettingsController() {
-        this.settingsService = AppServices.settingsService();
-        this.i18nService = AppServices.i18n();
+    public SettingsController(AppSettingsService settingsService, I18nService i18nService, AppState appState) {
+        this.settingsService = settingsService;
+        this.i18nService = i18nService;
+        this.appState = appState;
     }
 
     @FXML
@@ -89,8 +92,8 @@ public class SettingsController {
     }
 
     public void refreshRuntimeSnapshot() {
-        runtimeStateLabel.setText(AppServices.appState().getRunState().name());
-        activeProfileLabel.setText(AppServices.appState().getActiveProfile());
+        runtimeStateLabel.setText(appState.getRunState().name());
+        activeProfileLabel.setText(appState.getActiveProfile());
     }
 
     public void refreshLocalizedTexts() {

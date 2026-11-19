@@ -6,10 +6,15 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.example.activepartner.automation.AutomationService;
 import org.example.activepartner.config.AppSettings;
+import org.example.activepartner.persistence.JsonProfileRepository;
 import org.example.activepartner.ui.AppServices;
 import org.example.activepartner.ui.IconResources;
+import org.example.activepartner.ui.MainController;
 import org.example.activepartner.ui.MainLayoutController;
+import org.example.activepartner.ui.SettingsController;
+import org.example.activepartner.ui.navigation.NavigationService;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -31,6 +36,7 @@ public class HelloApplication extends Application {
                 HelloApplication.class.getResource("main-layout.fxml"),
                 AppServices.i18n().getBundle()
         );
+        fxmlLoader.setControllerFactory(this::createController);
         Scene scene = new Scene(fxmlLoader.load(), 920, 700);
         this.mainLayoutController = fxmlLoader.getController();
         this.mainLayoutController.bindScene(scene);
@@ -61,6 +67,25 @@ public class HelloApplication extends Application {
             MainLayoutController controller = mainLayoutController;
             mainLayoutController = null;
             controller.shutdown();
+        }
+    }
+
+    private Object createController(Class<?> type) {
+        if (type == MainLayoutController.class) {
+            return new MainLayoutController(
+                    new NavigationService(AppServices.i18n(), this::createController), AppServices.i18n());
+        }
+        if (type == MainController.class) {
+            return new MainController(new JsonProfileRepository(), new AutomationService(),
+                    AppServices.settingsService(), AppServices.logService(), AppServices.i18n(), AppServices.appState());
+        }
+        if (type == SettingsController.class) {
+            return new SettingsController(AppServices.settingsService(), AppServices.i18n(), AppServices.appState());
+        }
+        try {
+            return type.getConstructor().newInstance();
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Unable to create FXML controller " + type.getName(), exception);
         }
     }
 

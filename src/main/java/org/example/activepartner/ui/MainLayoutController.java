@@ -7,6 +7,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import org.example.activepartner.i18n.I18nService;
 import org.example.activepartner.ui.navigation.AppView;
 import org.example.activepartner.ui.navigation.LoadedView;
 import org.example.activepartner.ui.navigation.NavigationService;
@@ -22,13 +23,15 @@ public class MainLayoutController {
     private Button settingsButton;
 
     private final NavigationService navigationService;
+    private final I18nService i18n;
     private Stage stage;
     private Scene scene;
     private MainController automationController;
     private SettingsController settingsController;
 
-    public MainLayoutController() {
-        this.navigationService = new NavigationService();
+    public MainLayoutController(NavigationService navigationService, I18nService i18n) {
+        this.navigationService = navigationService;
+        this.i18n = i18n;
     }
 
     @FXML
@@ -107,13 +110,13 @@ public class MainLayoutController {
             settingsController.refreshLocalizedTexts();
         }
         if (stage != null) {
-            stage.setTitle(AppServices.i18n().text("app.title"));
+            stage.setTitle(i18n.text("app.title"));
         }
     }
 
     private void refreshLocalizedTexts() {
-        titleLabel.setText(AppServices.i18n().text("app.title"));
-        automationButton.setText(AppServices.i18n().text("nav.automation"));
-        settingsButton.setText(AppServices.i18n().text("nav.settings"));
+        titleLabel.setText(i18n.text("app.title"));
+        automationButton.setText(i18n.text("nav.automation"));
+        settingsButton.setText(i18n.text("nav.settings"));
     }
 }
