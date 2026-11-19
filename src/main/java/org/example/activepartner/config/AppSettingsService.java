@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -60,10 +61,23 @@ public class AppSettingsService {
         properties.setProperty("windowWidth", Double.toString(settings.getWindowWidth()));
         properties.setProperty("windowHeight", Double.toString(settings.getWindowHeight()));
 
-        try (OutputStream outputStream = Files.newOutputStream(settingsPath)) {
-            properties.store(outputStream, "Active Partner Settings");
+        Path temporaryFile = null;
+        try {
+            temporaryFile = Files.createTempFile(settingsPath.getParent(), "app-settings-", ".tmp");
+            try (OutputStream outputStream = Files.newOutputStream(temporaryFile)) {
+                properties.store(outputStream, "Active Partner Settings");
+            }
+            Files.move(temporaryFile, settingsPath, StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
-            throw new IllegalStateException("Unable to save settings", exception);
+            if (temporaryFile != null) {
+                try {
+                    Files.deleteIfExists(temporaryFile);
+                } catch (IOException cleanupException) {
+                    exception.addSuppressed(cleanupException);
+                }
+            }
+            throw new IllegalStateException("Unable to save settings to " + settingsPath, exception);
         }
     }
 
