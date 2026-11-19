@@ -8,6 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 public class AppSettingsService {
     private static final String ROOT_DIR = ".active-partner";
@@ -50,7 +51,13 @@ public class AppSettingsService {
         }
     }
 
-    public void save(AppSettings settings) {
+    public synchronized void update(Consumer<AppSettings> change) {
+        AppSettings settings = load();
+        change.accept(settings);
+        save(settings);
+    }
+
+    public synchronized void save(AppSettings settings) {
         ensureDirectory();
         Properties properties = new Properties();
         properties.setProperty("minimizeToTrayOnStart", Boolean.toString(settings.isMinimizeToTrayOnStart()));

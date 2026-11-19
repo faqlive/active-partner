@@ -73,12 +73,12 @@ public class HelloApplication extends Application {
 
     private void persistWindowBounds(Stage stage) {
         try {
-            AppSettings settings = AppServices.settingsService().load();
-            settings.setWindowX(stage.getX());
-            settings.setWindowY(stage.getY());
-            settings.setWindowWidth(Math.max(500, stage.getWidth()));
-            settings.setWindowHeight(Math.max(400, stage.getHeight()));
-            AppServices.settingsService().save(settings);
+            AppServices.settingsService().update(settings -> {
+                settings.setWindowX(stage.getX());
+                settings.setWindowY(stage.getY());
+                settings.setWindowWidth(Math.max(500, stage.getWidth()));
+                settings.setWindowHeight(Math.max(400, stage.getHeight()));
+            });
         } catch (IllegalStateException | IllegalArgumentException | SecurityException exception) {
             LOGGER.log(Level.WARNING, "Unable to save window preferences", exception);
         }

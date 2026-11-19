@@ -61,12 +61,15 @@ public class SettingsController {
     @FXML
     private void onSaveSettings() {
         try {
-            AppSettings settings = new AppSettings();
-            settings.setMinimizeToTrayOnStart(minimizeOnStartCheck.isSelected());
-            settings.setAutoResumeAfterInteractionSec(Integer.parseInt(autoResumeSecField.getText().trim()));
-            AppLanguage selectedLanguage = languageComboBox.getValue() == null ? AppLanguage.SPANISH : languageComboBox.getValue();
-            settings.setLanguageCode(selectedLanguage.getCode());
-            settingsService.save(settings);
+            boolean minimizeOnStart = minimizeOnStartCheck.isSelected();
+            int autoResumeSeconds = Integer.parseInt(autoResumeSecField.getText().trim());
+            AppLanguage selectedLanguage = languageComboBox.getValue() == null
+                    ? AppLanguage.SPANISH : languageComboBox.getValue();
+            settingsService.update(settings -> {
+                settings.setMinimizeToTrayOnStart(minimizeOnStart);
+                settings.setAutoResumeAfterInteractionSec(autoResumeSeconds);
+                settings.setLanguageCode(selectedLanguage.getCode());
+            });
             boolean languageChanged = !selectedLanguage.getCode().equalsIgnoreCase(i18nService.getLanguageCode());
             i18nService.setLanguageCode(selectedLanguage.getCode());
             if (languageChanged && languageChangedHandler != null) {
