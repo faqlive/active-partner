@@ -4,9 +4,9 @@ Guidance for coding agents working in this repository.
 
 ## Project Snapshot
 
-- Build tool: Maven Wrapper (`./mvnw`, `mvnw.cmd`).
-- Language: Java (configured with `maven-compiler-plugin` source/target `8`).
-- UI stack: JavaFX + FXML.
+- Build tool using Maven Wrapper (`./mvnw`, `mvnw.cmd`) with Maven 3.8.5.
+- Use JDK 17 for local development. The Maven compiler is configured with Java 11 source and target levels.
+- UI stack uses JavaFX 17.0.6 and FXML.
 - Module system: enabled via `src/main/java/module-info.java`.
 - Current package root: `org.example.activepartner`.
 - Test framework: JUnit 5 (`junit-jupiter-api`, `junit-jupiter-engine`).
@@ -21,9 +21,10 @@ Guidance for coding agents working in this repository.
 
 ## Directory Reference
 
-- App entry point: `src/main/java/org/example/activepartner/HelloApplication.java`.
-- FXML controller: `src/main/java/org/example/activepartner/HelloController.java`.
-- FXML layout: `src/main/resources/org/example/activepartner/hello-view.fxml`.
+- The Maven JavaFX plugin launches `src/main/java/org/example/activepartner/HelloApplication.java`.
+- The packaged JAR uses `src/main/java/org/example/activepartner/Main.java` as its launcher.
+- The main FXML controller is `src/main/java/org/example/activepartner/ui/MainLayoutController.java`.
+- The main FXML layout is `src/main/resources/org/example/activepartner/main-layout.fxml`.
 - Java module declaration: `src/main/java/module-info.java`.
 - Build config: `pom.xml`.
 
@@ -98,7 +99,7 @@ These are the expected conventions for new/updated code.
 - Constants: `UPPER_SNAKE_CASE` (`DEFAULT_TIMEOUT_MS`).
 - Test classes: `<ClassUnderTest>Test`.
 - Test methods: behavior-focused names (`returnsEmptyStateWhenNoData`).
-- FXML files: kebab-case or lower-case with hyphens (follow current `hello-view.fxml` style).
+- Name FXML files in kebab-case, following `main-layout.fxml`.
 
 ### Error Handling
 
