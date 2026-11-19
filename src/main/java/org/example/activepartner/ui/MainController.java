@@ -747,7 +747,6 @@ public class MainController {
         exitItem.addActionListener(event -> Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                shutdown();
                 Platform.exit();
             }
         }));

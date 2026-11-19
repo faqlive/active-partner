@@ -19,6 +19,7 @@ public class HelloApplication extends Application {
     private static final Logger LOGGER = Logger.getLogger(HelloApplication.class.getName());
 
     private MainLayoutController mainLayoutController;
+    private Stage primaryStage;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -42,22 +43,24 @@ public class HelloApplication extends Application {
         IconResources.applyTaskbarIcon();
         stage.setScene(scene);
         applyWindowBounds(stage);
+        primaryStage = stage;
         stage.setOnCloseRequest(event -> {
-            persistWindowBounds(stage);
-            if (mainLayoutController != null) {
-                mainLayoutController.shutdown();
-            }
+            event.consume();
             Platform.exit();
-            System.exit(0);
         });
         stage.show();
     }
 
     @Override
     public void stop() {
-        // Stage close handler already persists bounds.
+        if (primaryStage != null) {
+            persistWindowBounds(primaryStage);
+            primaryStage = null;
+        }
         if (mainLayoutController != null) {
-            mainLayoutController.shutdown();
+            MainLayoutController controller = mainLayoutController;
+            mainLayoutController = null;
+            controller.shutdown();
         }
     }
 
