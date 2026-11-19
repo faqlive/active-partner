@@ -12,8 +12,12 @@ import org.example.activepartner.ui.IconResources;
 import org.example.activepartner.ui.MainLayoutController;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class HelloApplication extends Application {
+    private static final Logger LOGGER = Logger.getLogger(HelloApplication.class.getName());
+
     private MainLayoutController mainLayoutController;
 
     @Override
@@ -72,10 +76,11 @@ public class HelloApplication extends Application {
             AppSettings settings = AppServices.settingsService().load();
             settings.setWindowX(stage.getX());
             settings.setWindowY(stage.getY());
-            settings.setWindowWidth(stage.getWidth());
-            settings.setWindowHeight(stage.getHeight());
+            settings.setWindowWidth(Math.max(500, stage.getWidth()));
+            settings.setWindowHeight(Math.max(400, stage.getHeight()));
             AppServices.settingsService().save(settings);
-        } catch (Exception ignored) {
+        } catch (IllegalStateException | IllegalArgumentException | SecurityException exception) {
+            LOGGER.log(Level.WARNING, "Unable to save window preferences", exception);
         }
     }
 
